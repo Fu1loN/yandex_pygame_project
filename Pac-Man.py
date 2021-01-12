@@ -44,6 +44,7 @@ class Board:
                     sprite.rect = sprite.image.get_rect()
                     sprite.rect.x = 32 + j * 30
                     sprite.rect.y = 32 + i * 30
+                    sprite.cords = (j, i)
                     points.add(sprite)
                 elif self.level[i][j] == ',':
                     sprite = pygame.sprite.Sprite()
@@ -51,6 +52,7 @@ class Board:
                     sprite.rect = sprite.image.get_rect()
                     sprite.rect.x = 27 + j * 30
                     sprite.rect.y = 27 + i * 30
+                    sprite.cords = (j, i)
                     points.add(sprite)
         decorations.draw(screen_play)
         points.draw(screen_play)
@@ -98,6 +100,10 @@ class PacMan(pygame.sprite.Sprite):
         self.rect = self.rect.move(self.x_move, self.y_move)
         if pygame.sprite.spritecollideany(self, decorations):
             self.rect = self.rect.move(-self.x_move, -self.y_move)
+        c = pygame.sprite.spritecollide(self, points, True)
+        for i in c:
+            x, y = i.cords
+            board.level[y][x] = ' '
 
     def change_way(self, ev):
         x, y = self.x_move, self.y_move
