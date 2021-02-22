@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+from PIL import Image
 
 
 def get_pacman_cord(level):
@@ -45,7 +46,6 @@ class Board:
                     sprite.rect.x = 25 + j * 30
                     sprite.rect.y = 25 + i * 30
                     decorations.add(sprite)
-                    walls.add(sprite)
                     level_map[i][j] = -1
                 elif self.level[i][j] == '-':
                     sprite = pygame.sprite.Sprite()
@@ -161,7 +161,6 @@ class Ghost(pygame.sprite.Sprite):
                                     32)
         self.rect = pygame.Rect((self.x + 1) * 30, (self.y + 1) * 30, 30, 30)
 
-
         self.speed = 5
         self.ticks = 0
         self.updates = 0
@@ -169,14 +168,14 @@ class Ghost(pygame.sprite.Sprite):
     def update_target(self):
         if pacman.ate_big_point:
             self.scared()
-            target_x, target_y = 55, 55
+            target_x, target_y = 12, 11
         else:
             target_x, target_y = self.get_target()
         map_way = [[one for one in line] for line in self.level_map]
         map_way = self.obhod(map_way, self.x, self.y, 1)
         self.make_way(map_way, target_x, target_y)
         x, y = self.way[-2][0], self.way[-2][1]
-        self.target = (x,y)
+        self.target = (x, y)
 
     def update(self, *args):
         global running
@@ -188,21 +187,23 @@ class Ghost(pygame.sprite.Sprite):
             x, y = self.target
             if x == self.x and self.y > y:
                 self.rect = self.rect.move(0, -self.speed)
-                self.x, self.y = board.find_cell((self.rect.x + 15, self.rect.y + 29))
+                self.x, self.y = board.find_cell(
+                    (self.rect.x + 15, self.rect.y + 29))
             elif x == self.x and self.y < y:
                 self.rect = self.rect.move(0, self.speed)
-                self.x, self.y = board.find_cell((self.rect.x + 15, self.rect.y + 1))
+                self.x, self.y = board.find_cell(
+                    (self.rect.x + 15, self.rect.y + 1))
             elif x < self.x and self.y == y:
                 self.rect = self.rect.move(-self.speed, 0)
-                self.x, self.y = board.find_cell((self.rect.x + 29, self.rect.y + 15))
+                self.x, self.y = board.find_cell(
+                    (self.rect.x + 29, self.rect.y + 15))
             elif x == self.x and y == self.y:
                 1 == 1
                 # НУ ТУТ ПРОИГРЫШ
             else:
                 self.rect = self.rect.move(self.speed, 0)
-                self.x, self.y = board.find_cell((self.rect.x + 1, self.rect.y + 15))
-
-
+                self.x, self.y = board.find_cell(
+                    (self.rect.x + 1, self.rect.y + 15))
 
         except IndexError:
             pass
@@ -246,10 +247,10 @@ class Ghost(pygame.sprite.Sprite):
         if pacman.ate_clock == 11:
             pacman.ate_big_coin = False
             pacman.ate_clock = 0
-        elif board.find_cell((pacman.x_move, pacman.y_move)) == board.find_cell(
+        '''elif board.find_cell((pacman.rect.x, pacman.rect.y)) == board.find_cell(
                 (self.x, self.y)):
             self.x, self.y = get_ghost_coord(board.level, 1)
-            board.score += 200
+            board.score += 200'''
 
     def get_target(self):
         return board.find_cell((pacman.rect.x + 15, pacman.rect.y + 15))
@@ -267,6 +268,7 @@ class Shadow(Ghost):
         sprite.rect = sprite.image.get_rect()
         shadow.add(sprite)
         shadow.draw(self.image)
+
 
 class Speedy(Ghost):
     def __init__(self, x, y, level_map):
@@ -288,9 +290,7 @@ class Speedy(Ghost):
                     x, y = z
                     if board.level[y][x] == '#':
                         continue
-                    print(z)
                     return z
-                    break
         else:
             for i in range(4):
                 x = pacman.rect.x + 15
@@ -302,12 +302,74 @@ class Speedy(Ghost):
                     x, y = z
                     if board.level[y][x] == '#':
                         continue
-                    print(z)
                     return z
-                    break
         return super().get_target()
 
+
+class Pockey(Ghost):
+    def __init__(self, x, y, level_map):
+        super().__init__(x, y, level_map)
+        self.image = pygame.Surface((2 * 15 - 4, 2 * 15 - 4), pygame.SRCALPHA,
+                                    32)
+        pygame.draw.circle(self.image, pygame.Color("orange"), (13, 13), 13)
+
+    def get_target(self):
+        x, y = Ghost.get_target(self)
+        map_way = [[one for one in line] for line in self.level_map]
+        map_way = self.obhod(map_way, self.x, self.y, 1)
+        self.make_way(map_way, x, y)
+
+        if len(self.way) > 16:
+            self.way = []
+            return (x, y)
+        else:
+            self.way = []
+            return (4, 20)
+
+
+
+
+
 if __name__ == '__main__':
+    if not os.path.exists('images'):
+        os.mkdir('images')
+    if not os.path.exists('images/door.jpg'):
+        im = Image.new("RGB", (30, 10))
+        pixels = im.load()
+        for i in range(30):
+            for j in range(10):
+                pixels[i, j] = 132, 68, 33
+        im.save("images/door.jpg")
+    if not os.path.exists('images/big_point.jpg'):
+        im = Image.new("RGB", (28, 28))
+        pixels = im.load()
+        for i in range(28):
+            for j in range(28):
+                pixels[i, j] = 190, 162, 63
+        im.save("images/big_point.jpg")
+    if not os.path.exists('images/small_point.jpg'):
+        im = Image.new("RGB", (15, 15))
+        pixels = im.load()
+        for i in range(15):
+            for j in range(15):
+                r, g, b = pixels[i, j]
+                pixels[i, j] = 231, 217, 128
+        im.save("images/small_point.jpg")
+    if not os.path.exists('images/wall.jpg'):
+        im = Image.new("RGB", (30, 30))
+        pixels = im.load()
+        for i in range(30):
+            for j in range(30):
+                pixels[i, j] = 68, 150, 226
+        im.save("images/wall.jpg")
+    if not os.path.exists('images/shadow.jpg'):
+        im = Image.new("RGB", (22, 25))
+        pixels = im.load()
+        for i in range(22):
+            for j in range(25):
+                pixels[i, j] = 248, 4, 4
+        im.save("images/shadow.jpg")
+
     pygame.init()
     menu_text = ['Pac-Man', '1 level']
     font = pygame.font.Font(None, 30)
@@ -342,7 +404,6 @@ if __name__ == '__main__':
     file_level = 1
     if file_level == 1:
         file_name = 'level1.txt'
-    try:
         f = open(file_name, 'rt', encoding="utf-8")
         level = [[one for one in f.readline().replace('\n', '')] for _ in
                  range(22)]
@@ -359,38 +420,37 @@ if __name__ == '__main__':
         points = pygame.sprite.Group()
         decorations = pygame.sprite.Group()
         ghosts = pygame.sprite.Group()
-        walls = pygame.sprite.Group()
 
         level_map = [[0 for one in range(len(level[0]))] for _ in
                      range(len(level))]
         ghost_type = 0
-        ghost_color = ['red', 'pink', 'blue', 'orange']
+        '''ghost_color = ['red', 'pink', 'blue', 'orange']'''
         placed = 0
 
         shadow = Shadow(get_ghost_coord(board.level, 1)[0],
-                                get_ghost_coord(board.level, 1)[1], level_map)
+                        get_ghost_coord(board.level, 1)[1], level_map)
         speedy = Speedy(get_ghost_coord(board.level, 2)[0],
-                                get_ghost_coord(board.level, 2)[1], level_map)
-
+                        get_ghost_coord(board.level, 2)[1], level_map)
+        pockey = Pockey(get_ghost_coord(board.level, 4)[0],
+                        get_ghost_coord(board.level, 4)[1], level_map)
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    print(board.find_cell(event.pos))
+                '''if event.type == pygame.MOUSEBUTTONDOWN:
+                    print(board.find_cell(event.pos))'''
                 if event.type == pygame.KEYDOWN:
                     pacman.change_way(event)
-
             screen_play.fill((0, 0, 0))
             if board.score > 0:
                 shadow.update()
             if board.score > 300:
                 speedy.update()
+            if board.score > 450:
+                pockey.update()
             pacman.update()
             board.render(screen_play)
             all_sprites.draw(screen_play)
             pygame.display.flip()
             clock.tick(30)
         pygame.quit()
-    except FileNotFoundError:
-        print('Файл с уровнем не найден')
