@@ -370,7 +370,7 @@ if __name__ == '__main__':
         shadow = Shadow(get_ghost_coord(board.level, 1)[0],
                                 get_ghost_coord(board.level, 1)[1], level_map)
         speedy = Speedy(get_ghost_coord(board.level, 2)[0],
-                                get_ghost_coord(board.level, 1)[1], level_map)
+                                get_ghost_coord(board.level, 2)[1], level_map)
 
         while running:
             for event in pygame.event.get():
