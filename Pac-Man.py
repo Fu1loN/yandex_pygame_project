@@ -45,6 +45,7 @@ class Board:
                     sprite.rect.x = 25 + j * 30
                     sprite.rect.y = 25 + i * 30
                     decorations.add(sprite)
+                    walls.add(sprite)
                     level_map[i][j] = -1
                 elif self.level[i][j] == '-':
                     sprite = pygame.sprite.Sprite()
@@ -127,6 +128,9 @@ class PacMan(pygame.sprite.Sprite):
             else:
                 board.score += 10
             board.level[y][x] = ' '
+        if pygame.sprite.spritecollideany(self, ghosts):
+            global running
+            running = False
 
     def change_way(self, ev):
         x, y = self.x_move, self.y_move
@@ -149,51 +153,57 @@ class PacMan(pygame.sprite.Sprite):
 class Ghost(pygame.sprite.Sprite):
     def __init__(self, x, y, level_map):
         super().__init__(all_sprites)
+        ghosts.add(self)
         self.x, self.y = x, y
         self.way = []
         self.level_map = level_map
         self.image = pygame.Surface((2 * 15 - 4, 2 * 15 - 4), pygame.SRCALPHA,
                                     32)
-        self.rect = pygame.Rect((self.x + 1) * 30, (self.y + 1) * 30, 27, 27)
-        shadow = pygame.sprite.Group()
-        sprite = pygame.sprite.Sprite()
-        sprite.image = board.load_image("shadow.jpg")
-        sprite.rect = sprite.image.get_rect()
-        shadow.add(sprite)
-        sprite.rect.x = 0
-        sprite.rect.y = 0
-        shadow.draw(self.image)
+        self.rect = pygame.Rect((self.x + 1) * 30, (self.y + 1) * 30, 30, 30)
+
+
+        self.speed = 5
+        self.ticks = 0
+        self.updates = 0
+
+    def update_target(self):
+        if pacman.ate_big_point:
+            self.scared()
+            target_x, target_y = 55, 55
+        else:
+            target_x, target_y = self.get_target()
+        map_way = [[one for one in line] for line in self.level_map]
+        map_way = self.obhod(map_way, self.x, self.y, 1)
+        self.make_way(map_way, target_x, target_y)
+        x, y = self.way[-2][0], self.way[-2][1]
+        self.target = (x,y)
 
     def update(self, *args):
         global running
         try:
-            if pacman.ate_big_point:
-                self.scared()
-                target_x, target_y = 55, 55
-            else:
-                target_x, target_y = self.get_target()
-            map_way = [[one for one in line] for line in self.level_map]
-            map_way = self.obhod(map_way, self.x, self.y, 1)
-            #for i in map_way:
-                #print(*i)
-            print()
-            print()
-            self.make_way(map_way, target_x, target_y)
-            x, y = self.way[-2][0], self.way[-2][1]
-            print(x,y, self.x, self.y)
-            print(self.way)
+            self.ticks %= 30
+            if self.ticks < self.speed:
+                self.update_target()
+            self.ticks += self.speed
+            x, y = self.target
             if x == self.x and self.y > y:
-                self.rect = self.rect.move(0, -30)
+                self.rect = self.rect.move(0, -self.speed)
+                self.x, self.y = board.find_cell((self.rect.x + 15, self.rect.y + 29))
             elif x == self.x and self.y < y:
-                self.rect = self.rect.move(0, 30)
+                self.rect = self.rect.move(0, self.speed)
+                self.x, self.y = board.find_cell((self.rect.x + 15, self.rect.y + 1))
             elif x < self.x and self.y == y:
-                self.rect = self.rect.move(-30, 0)
+                self.rect = self.rect.move(-self.speed, 0)
+                self.x, self.y = board.find_cell((self.rect.x + 29, self.rect.y + 15))
             elif x == self.x and y == self.y:
                 1 == 1
+                # НУ ТУТ ПРОИГРЫШ
             else:
-                self.rect = self.rect.move(30, 0)
-            self.x, self.y = x, y
-            self.way = []
+                self.rect = self.rect.move(self.speed, 0)
+                self.x, self.y = board.find_cell((self.rect.x + 1, self.rect.y + 15))
+
+
+
         except IndexError:
             pass
 
@@ -242,13 +252,60 @@ class Ghost(pygame.sprite.Sprite):
             board.score += 200
 
     def get_target(self):
-        return board.find_cell((pacman.rect.x, pacman.rect.y))
+        return board.find_cell((pacman.rect.x + 15, pacman.rect.y + 15))
 
 
 class Shadow(Ghost):
     def get_target(self):
         return board.find_cell((pacman.rect.x + 15, pacman.rect.y + 15))
 
+    def __init__(self, x, y, level_map):
+        super().__init__(x, y, level_map)
+        shadow = pygame.sprite.Group()
+        sprite = pygame.sprite.Sprite()
+        sprite.image = board.load_image("shadow.jpg")
+        sprite.rect = sprite.image.get_rect()
+        shadow.add(sprite)
+        shadow.draw(self.image)
+
+class Speedy(Ghost):
+    def __init__(self, x, y, level_map):
+        super().__init__(x, y, level_map)
+        self.image = pygame.Surface((2 * 15 - 4, 2 * 15 - 4), pygame.SRCALPHA,
+                                    32)
+        pygame.draw.circle(self.image, pygame.Color("pink"), (13, 13), 13)
+
+    def get_target(self):
+        xm, ym = pacman.x_move, pacman.y_move
+        if ym == 0:
+            for i in range(4):
+                x = xm // 10 * 30 * (4 - i) + pacman.rect.x + 15
+                y = pacman.rect.y + 15
+                z = board.find_cell((x, y))
+                if z is None:
+                    continue
+                else:
+                    x, y = z
+                    if board.level[y][x] == '#':
+                        continue
+                    print(z)
+                    return z
+                    break
+        else:
+            for i in range(4):
+                x = pacman.rect.x + 15
+                y = ym // 10 * 30 * (4 - i) + pacman.rect.y + 15
+                z = board.find_cell((x, y))
+                if z is None:
+                    continue
+                else:
+                    x, y = z
+                    if board.level[y][x] == '#':
+                        continue
+                    print(z)
+                    return z
+                    break
+        return super().get_target()
 
 if __name__ == '__main__':
     pygame.init()
@@ -302,12 +359,19 @@ if __name__ == '__main__':
         points = pygame.sprite.Group()
         decorations = pygame.sprite.Group()
         ghosts = pygame.sprite.Group()
+        walls = pygame.sprite.Group()
 
         level_map = [[0 for one in range(len(level[0]))] for _ in
                      range(len(level))]
         ghost_type = 0
         ghost_color = ['red', 'pink', 'blue', 'orange']
-        placed = False
+        placed = 0
+
+        shadow = Shadow(get_ghost_coord(board.level, 1)[0],
+                                get_ghost_coord(board.level, 1)[1], level_map)
+        speedy = Speedy(get_ghost_coord(board.level, 2)[0],
+                                get_ghost_coord(board.level, 1)[1], level_map)
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -316,14 +380,12 @@ if __name__ == '__main__':
                     print(board.find_cell(event.pos))
                 if event.type == pygame.KEYDOWN:
                     pacman.change_way(event)
-            if not placed and board.score > 0:
-                shadow = Shadow(get_ghost_coord(board.level, 1)[0],
-                                get_ghost_coord(board.level, 1)[1], level_map)
-                # тут инициируются привидения
-                placed = True
+
+            screen_play.fill((0, 0, 0))
             if board.score > 0:
                 shadow.update()
-            screen_play.fill((0, 0, 0))
+            if board.score > 300:
+                speedy.update()
             pacman.update()
             board.render(screen_play)
             all_sprites.draw(screen_play)
