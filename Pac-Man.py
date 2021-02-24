@@ -120,11 +120,14 @@ class PacMan(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, decorations):
             self.rect = self.rect.move(-self.x_move, -self.y_move)
         if self.ate_big_coin:
-            print(self.ate_clock)
             self.ate_clock += 0.2
             if self.ate_clock >= 11:
                 self.ate_big_coin = False
                 self.ate_clock = 0
+                bashful.unscare()
+                speedy.unscare()
+                shadow.unscare()
+                pockey.unscare()
         c = pygame.sprite.spritecollide(self, points, True)
         for i in c:
             x, y = i.cords
@@ -132,13 +135,26 @@ class PacMan(pygame.sprite.Sprite):
                 board.score += 50
                 self.ate_big_coin = True
                 self.ate_clock = 0
+                bashful.scaring()
+                speedy.scaring()
+                shadow.scaring()
+                pockey.scaring()
             else:
                 board.score += 10
             board.level[y][x] = ' '
         if pygame.sprite.spritecollideany(self,
-                                          ghosts) and not self.ate_big_coin:
-            print('dead')
-            running = False
+                                          ghosts):
+            if not self.ate_big_coin:
+                print('dead')
+                running = False
+            else:
+                c = pygame.sprite.spritecollide(self, ghosts, False)
+                for ghost in c:
+                    if ghost.eatable:
+                        board.score += 0#Сколько??
+                        ghost.ate()
+
+
 
     def change_way(self, ev):
         x, y = self.x_move, self.y_move
@@ -170,11 +186,14 @@ class Ghost(pygame.sprite.Sprite):
         self.rect = pygame.Rect((self.x + 1) * 30, (self.y + 1) * 30, 30, 30)
 
         self.speed = 5
+        self.lspeed = 5
         self.ticks = 0
         self.updates = 0
+        self.eatable = False
+        self.fear = False
 
     def update_target(self):
-        if pacman.ate_big_coin:
+        if self.fear:
             target_x, target_y = 12, 11
         else:
             target_x, target_y = self.get_target()
@@ -204,13 +223,9 @@ class Ghost(pygame.sprite.Sprite):
                 self.rect = self.rect.move(-self.speed, 0)
                 self.x, self.y = board.find_cell(
                     (self.rect.x + 29, self.rect.y + 15))
-            elif self.get_target()[0] == self.x and self.get_target()[
-                1] == self.y and pacman.ate_big_coin:
-                print(self.speed)
-                self.rect = self.rect.move(
-                    (12 * 30 - (self.x - 1) * self.speed) / 2,
-                    (11 * 30 - (self.y - 1) * self.speed) / 2)
-                self.x, self.y = 12, 11
+            elif x == self.x and y == self.y and self.fear and not self.eatable:
+                self.unscare()
+
             else:
                 self.rect = self.rect.move(self.speed, 0)
                 self.x, self.y = board.find_cell(
@@ -218,6 +233,24 @@ class Ghost(pygame.sprite.Sprite):
 
         except IndexError:
             pass
+
+    def ate(self):
+        self.eatable = False
+        # поменять спрайт
+        self.speed, self.lspeed = 10, self.speed
+
+
+    def scaring(self):
+        # поменять спрайт
+        self.fear = True
+        self.eatable = True
+
+    def unscare(self):
+        self.speed = self.lspeed
+        self.fear = False
+        self.eatable = False
+        # поменять спрайт
+
 
     def obhod(self, lab, x, y, cur):
         lab[y][x] = cur
