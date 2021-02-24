@@ -102,9 +102,11 @@ class Board:
 class PacMan(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__(all_sprites)
-        self.image = pygame.Surface((2 * 15 - 4, 2 * 15 - 4), pygame.SRCALPHA,
-                                    32)
-        pygame.draw.circle(self.image, pygame.Color("yellow"), (13, 13), 13)
+        self.imagl = board.load_image('pacmanleft.png')
+        self.imagr = board.load_image('pacmanright.png')
+        self.imagt = board.load_image('pacmantop.png')
+        self.imagb = board.load_image('pacmanbot.png', colorkey=-1)
+        self.image = self.imagl
         x, y = pos
         x += 1
         y += 1
@@ -116,6 +118,7 @@ class PacMan(pygame.sprite.Sprite):
 
     def update(self, *args):
         global running
+
         self.rect = self.rect.move(self.x_move, self.y_move)
         if pygame.sprite.spritecollideany(self, decorations):
             self.rect = self.rect.move(-self.x_move, -self.y_move)
@@ -162,18 +165,23 @@ class PacMan(pygame.sprite.Sprite):
     def change_way(self, ev):
         x, y = self.x_move, self.y_move
         if ev.key == pygame.K_LEFT:
+            imag = self.imagl
             self.x_move, self.y_move = -10, 0
         if ev.key == pygame.K_UP:
+            imag = self.imagt
             self.x_move, self.y_move = 0, -10
         if ev.key == pygame.K_RIGHT:
+            imag = self.imagr
             self.x_move, self.y_move = 10, 0
         if ev.key == pygame.K_DOWN:
+            imag = self.imagb
             self.x_move, self.y_move = 0, 10
         self.rect = self.rect.move(self.x_move, self.y_move)
         if pygame.sprite.spritecollideany(self, decorations):
             self.rect = self.rect.move(-self.x_move, -self.y_move)
             self.x_move, self.y_move = x, y
         else:
+            self.image = imag
             self.rect = self.rect.move(-self.x_move, -self.y_move)
 
 
