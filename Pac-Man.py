@@ -141,7 +141,10 @@ class PacMan(pygame.sprite.Sprite):
                 pockey.scaring()
             else:
                 board.score += 10
+                soundpoint.stop()
+                soundpoint.play()
             board.level[y][x] = ' '
+
         if pygame.sprite.spritecollideany(self,
                                           ghosts):
             if not self.ate_big_coin:
@@ -442,6 +445,9 @@ if __name__ == '__main__':
         im.save("images/shadow.jpg")
 
     pygame.init()
+
+    soundpoint = pygame.mixer.Sound('images/point.mp3')
+    soundpoint.set_volume(0.05)
     menu_text = ['Pac-Man', '1 level']
     font = pygame.font.Font(None, 30)
     text_coord = 100
